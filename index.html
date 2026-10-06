@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Othman Moschee Spenden</title>
-<meta name="build" content="20261006132951-2239">
+<meta name="build" content="20261006140202-2239">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
@@ -73,17 +73,9 @@ header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:c
 @keyframes grow{from{transform:scaleY(.02)}}
 @keyframes fade{from{opacity:0}}
 /* new donation pop-up */
-.toast[hidden]{display:none}
-.toast{position:fixed;inset:0;display:grid;place-items:center;background:rgba(11,21,18,.78);backdrop-filter:blur(8px);z-index:10}
-.toast-card{background:rgba(255,255,255,.07);border:1px solid rgba(239,215,155,.45);border-radius:36px;padding:clamp(40px,5vh,80px) clamp(60px,8vw,160px);text-align:center;display:grid;gap:14px;
   box-shadow:0 0 120px rgba(31,154,108,.45),inset 0 1px 0 rgba(255,255,255,.15);animation:pop .7s cubic-bezier(.2,1.3,.4,1)}
-.toast-card .ar{text-align:center}
-.toast-card .t1{font-weight:500;font-size:clamp(22px,2.6vw,40px);color:var(--gold);letter-spacing:.06em;text-transform:uppercase}
-.toast-card .t1 .ar{letter-spacing:0;text-transform:none}
-.toast-card .amt{font-weight:600;font-size:clamp(70px,11vw,190px);line-height:1;letter-spacing:-.03em;color:#fff;text-shadow:0 0 60px rgba(239,215,155,.6)}
-.toast-card .t2{font-size:clamp(18px,2vw,30px)}
 @keyframes pop{from{transform:scale(.7) translateY(30px);opacity:0}to{transform:none;opacity:1}}
-@media (prefers-reduced-motion:reduce){.toast-card,.draw,.grow,.fade{animation:none!important;stroke-dashoffset:0}.bar i{transition:none}}
+@media (prefers-reduced-motion:reduce){.draw,.grow,.fade{animation:none!important;stroke-dashoffset:0}.bar i{transition:none}}
 </style>
 
 <div class="stage" id="stage">
@@ -122,13 +114,6 @@ header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:c
   </div>
 </div>
 
-<div class="toast" id="toast" hidden>
-  <div class="toast-card" role="status" aria-live="polite">
-    <div class="t1">Neue Spende<span class="ar">تبرع جديد</span></div>
-    <div class="amt" id="toastAmt"></div>
-    <div class="t2">Vielen Dank!<span class="ar">جزاكم الله خيرًا</span></div>
-  </div>
-</div>
 
 <script>
 // Public data: one entry per incoming donation, date and amount only.
@@ -163,7 +148,7 @@ function renderText(){
   const inM=DONATIONS.filter(x=>x.d.startsWith(mk));
   const w7=new Date(now);w7.setUTCDate(now.getUTCDate()-6);const wk=w7.toISOString().slice(0,10);
   // Campaign total = bank balance on its date + PayPal donations received after that date (those are not yet on the bank).
-  const sincePP=sum(DONATIONS.filter(x=>x.d>CFG.bank_date)), raised=CFG.bank_balance+sincePP;
+  const sincePP=sum(DONATIONS.filter(x=>x.d>=CFG.bank_date)), raised=CFG.bank_balance+sincePP;
   const pct=Math.min(100,raised/CFG.campaign_goal*100);
   countTo($('raised'),raised,v=>eur0.format(v));
   countTo($('remaining'),Math.max(0,CFG.campaign_goal-raised),v=>eur0.format(v));
@@ -202,22 +187,13 @@ function renderMonthly(){
   let s=`<defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f9a6c"/><stop offset="1" stop-color="#0f6b4b"/></linearGradient></defs><line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="rgba(255,255,255,.15)"/>`;
   keys.forEach((k,i)=>{const cx=L+i*cw+cw/2,cur=k===mk;
     s+=`<rect class="grow" style="animation-delay:${i*90}ms" x="${cx-bw/2}" y="${y(vals[i])}" width="${bw}" height="${y(0)-y(vals[i])}" rx="${Math.min(10,bw/3)}" fill="${cur?'#efd79b':'url(#gb)'}"/>`;
-    s+=`<text class="fade" x="${cx}" y="${y(vals[i])-8}" text-anchor="middle" font-size="${fs}" font-weight="500" style="fill:${cur?'#efd79b':'rgba(255,255,255,.85)'}">${(vals[i]/1000).toLocaleString('de-DE',{maximumFractionDigits:1})}k</text>`;
+    s+=`<text class="fade" x="${cx}" y="${y(vals[i])-8}" text-anchor="middle" font-size="${fs}" font-weight="500" style="fill:${cur?'#efd79b':'rgba(255,255,255,.85)'}">${vals[i]>=1000?(vals[i]/1000).toLocaleString('de-DE',{maximumFractionDigits:1})+'k':eur0.format(vals[i])}</text>`;
     s+=`<text x="${cx}" y="${H-6}" text-anchor="middle" font-size="${fs}">${fM.format(D(k+'-15'))}</text>`});
   el.innerHTML=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Spenden pro Monat, laufender Monat in Gold">${s}</svg>`;
 }
 function renderCharts(){renderDaily();renderMonthly()}
 
 // Pop-up for donations that arrived since this screen last saw the data.
-function announce(seen){
-  const fresh=seen>0&&DONATIONS.length>seen?DONATIONS.slice(seen).slice(-10):[];
-  if(location.hash==='#test')fresh.push({a:25});  // open the link with #test to preview the pop-up
-  (function next(){
-    const x=fresh.shift(); if(!x){$('toast').hidden=true;return}
-    $('toastAmt').textContent=eur.format(x.a); $('toast').hidden=false;
-    setTimeout(()=>{$('toast').hidden=true;setTimeout(next,600)},8000);
-  })();
-}
 // Scale the fixed 1920x1080 stage to fit any screen, centred, never scrolling.
 function fit(){const s=Math.min(innerWidth/1920,innerHeight/1080),st=$('stage');st.style.transform=`translate(${(innerWidth-1920*s)/2}px,${(innerHeight-1080*s)/2}px) scale(${s})`}
 function start(data){
@@ -225,10 +201,6 @@ function start(data){
   tick();setInterval(tick,10000);
   renderText();renderCharts();
   if(document.fonts&&document.fonts.ready)document.fonts.ready.then(renderCharts);
-  let seen=data&&data.seen;
-  if(seen==null){try{seen=+localStorage.getItem('seenDonations')||0}catch(_){seen=0}}
-  announce(seen);
-  try{localStorage.setItem('seenDonations',DONATIONS.length)}catch(_){}
 }
 window.claude?.hot?.snapshot?.(()=>({seen:DONATIONS.length}));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
