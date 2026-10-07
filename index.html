@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Othman Moschee Spenden</title>
-<meta name="build" content="20261007081342-2249">
+<meta name="build" content="20261007081752-2249">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
@@ -91,6 +91,28 @@ header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:c
 .quote .arq{font-family:var(--font-ar);font-size:38px;line-height:1.7;direction:rtl;color:#fff}
 .quote .deq{font-size:25px;line-height:1.45;color:rgba(238,243,239,.9)}
 .quote .src{font-size:16px;color:var(--muted);letter-spacing:.06em}
+/* Phone layout: portrait screens get a stacked, scrollable page instead of the shrunk TV picture. */
+body.mobile,body.mobile html{overflow:auto}
+html.mobile,html.mobile body{height:auto;overflow:auto}
+body.mobile .stage{position:static;width:100%;height:auto;transform:none!important;padding:20px 16px 32px;display:flex;flex-direction:column;gap:16px}
+body.mobile .stage::before{position:fixed}
+body.mobile header{flex-direction:column;align-items:flex-start;gap:10px}
+body.mobile .brand{font-size:22px}body.mobile .brand img.logo{height:64px}
+body.mobile .clock{text-align:left;font-size:34px}
+body.mobile .hero{padding:24px 22px;gap:14px}
+body.mobile .big{font-size:52px}
+body.mobile .pair{grid-template-columns:1fr;gap:12px}body.mobile .pair .kpi{padding:14px 16px}body.mobile .pair .v{font-size:30px}
+body.mobile .bar{height:28px}body.mobile .bar .pct{font-size:16px}body.mobile .ticks{font-size:12px}
+body.mobile .right{display:flex;flex-direction:column;gap:16px}
+body.mobile .tiles{grid-template-columns:1fr;gap:12px}body.mobile .tile{padding:18px 20px}body.mobile .tile .v{font-size:36px}
+body.mobile .charts{display:flex;flex-direction:column;gap:16px}
+body.mobile .flip{perspective:none;display:flex;flex-direction:column;gap:16px}
+body.mobile .flip .face{position:static;transform:none!important;transition:none;backface-visibility:visible}
+body.mobile .panel{padding:22px 20px}
+body.mobile .quote #f2{min-height:0;padding:10px 0}
+body.mobile .quote .arq{font-size:28px!important}body.mobile .quote .deq{font-size:19px!important}
+body.mobile .feed .amt{font-size:28px}body.mobile .feed .when{font-size:15px}
+body.mobile .chart{height:300px;flex:none}
 </style>
 
 <div class="stage" id="stage">
@@ -217,7 +239,7 @@ function renderDaily(){
   $('f2').innerHTML=`<div class="arq" style="font-size:${q.ar.length>90?32:38}px">${q.ar}</div><div class="deq" style="font-size:${q.de.length>110?22:25}px">„${q.de}“</div><div class="src">${q.src}</div>`;
 }
 // Turn the card: quote for 60 s, latest donations for 30 s.
-setTimeout(function turn(){const on=$('flip').classList.toggle('turned');setTimeout(turn,on?30000:60000)},60000);
+setTimeout(function turn(){const on=isMobile()?false:$('flip').classList.toggle('turned');setTimeout(turn,on?30000:60000)},60000);
 function renderMonthly(){
   const el=$('monthly'),W=el.clientWidth,H=el.clientHeight;if(!W||!H)return;const fs=17;
   const m={};DONATIONS.forEach(x=>{const k=x.d.slice(0,7);m[k]=(m[k]||0)+x.a});m[mk]=m[mk]||0;const keys=Object.keys(m).sort().slice(-6),vals=keys.map(k=>m[k]);
@@ -233,7 +255,10 @@ function renderCharts(){renderDaily();renderMonthly()}
 
 // Pop-up for donations that arrived since this screen last saw the data.
 // Scale the fixed 1920x1080 stage to fit any screen, centred, never scrolling.
-function fit(){const s=Math.min(innerWidth/1920,innerHeight/1080),st=$('stage');st.style.transform=`translate(${(innerWidth-1920*s)/2}px,${(innerHeight-1080*s)/2}px) scale(${s})`}
+function isMobile(){return innerWidth<innerHeight||innerWidth<900}
+function fit(){const m=isMobile(),was=document.body.classList.contains('mobile');document.body.classList.toggle('mobile',m);document.documentElement.classList.toggle('mobile',m);
+  const st=$('stage');if(m){st.style.transform='';}else{const s=Math.min(innerWidth/1920,innerHeight/1080);st.style.transform=`translate(${(innerWidth-1920*s)/2}px,${(innerHeight-1080*s)/2}px) scale(${s})`}
+  if(m!==was&&typeof renderCharts==='function')renderCharts()}
 function start(data){
   fit();addEventListener('resize',fit);
   tick();setInterval(tick,10000);
