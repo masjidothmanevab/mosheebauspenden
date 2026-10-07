@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Othman Moschee Spenden</title>
-<meta name="build" content="20261006190805-2249">
+<meta name="build" content="20261007081342-2249">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <style>
@@ -164,7 +164,10 @@ const fMonth=de({month:'long',year:'numeric'}), fMonthAr=ar({month:'long',year:'
 const fM=de({month:'short'}), fTick=de({day:'numeric',month:'numeric'});
 const sum=a=>a.reduce((s,x)=>s+x.a,0);
 const $=id=>document.getElementById(id);
-const now=D(UPDATED), mk=UPDATED.slice(0,7);
+// "Today" follows the real calendar in Berlin, not the date of the last donation, so the day tile resets to 0 € at midnight.
+let TODAY,now,mk;
+function setToday(){TODAY=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Berlin'});now=D(TODAY);mk=TODAY.slice(0,7)}
+setToday();
 const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function countTo(el,v,fmt){
@@ -174,6 +177,7 @@ function countTo(el,v,fmt){
 }
 function tick(){
   const n=new Date();
+  if(n.toLocaleDateString('sv-SE',{timeZone:'Europe/Berlin'})!==TODAY){setToday();renderText();renderCharts()}
   $('time').textContent=n.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'});
   $('date').textContent=n.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/Berlin'});
   $('dateAr').textContent=n.toLocaleDateString('ar-u-nu-latn',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/Berlin'});
@@ -195,8 +199,8 @@ function renderText(){
   $('monthLabelAr').textContent=fMonthAr.format(now)+' · عدد التبرعات: '+inM.length;
   countTo($('monthTotal'),sum(inM),v=>eur.format(v));
   $('dayLabel').textContent='Am '+fDay.format(now); $('dayLabelAr').textContent='يوم '+fDayAr.format(now);
-  countTo($('day'),sum(DONATIONS.filter(x=>x.d===UPDATED)),v=>eur.format(v));
-  countTo($('week'),sum(DONATIONS.filter(x=>x.d>=wk&&x.d<=UPDATED)),v=>eur.format(v));
+  countTo($('day'),sum(DONATIONS.filter(x=>x.d===TODAY)),v=>eur.format(v));
+  countTo($('week'),sum(DONATIONS.filter(x=>x.d>=wk&&x.d<=TODAY)),v=>eur.format(v));
 }
 
 function scale(max){const raw=max/4,mag=Math.pow(10,Math.floor(Math.log10(raw||1))),step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>s>=raw);return{step,top:Math.ceil(max/step)*step}}
@@ -205,7 +209,7 @@ function renderDaily(){
   // back: the latest donations, amount and time only
   const yest=new Date(now);yest.setUTCDate(now.getUTCDate()-1);const YK=yest.toISOString().slice(0,10);
   const last=DONATIONS.filter(x=>x.t).sort((a,b)=>(b.d+b.t).localeCompare(a.d+a.t)).slice(0,7);
-  $('f1').innerHTML=last.map((x,i)=>{const when=(x.d===UPDATED?'Heute':x.d===YK?'Gestern':fTick.format(D(x.d)))+' · '+x.t.slice(0,5)+' Uhr';
+  $('f1').innerHTML=last.map((x,i)=>{const when=(x.d===TODAY?'Heute':x.d===YK?'Gestern':fTick.format(D(x.d)))+' · '+x.t.slice(0,5)+' Uhr';
     return `<div class="it" style="animation-delay:${i*90}ms"><span class="amt">${eur.format(x.a)}</span><span class="when">${when}</span></div>`}).join('');
   // front: quote of the day, chosen by the real calendar day so it changes at midnight
   const today=new Date(),dayNo=Math.floor((Date.UTC(today.getFullYear(),today.getMonth(),today.getDate())-Date.UTC(2026,0,1))/864e5);
@@ -216,7 +220,7 @@ function renderDaily(){
 setTimeout(function turn(){const on=$('flip').classList.toggle('turned');setTimeout(turn,on?30000:60000)},60000);
 function renderMonthly(){
   const el=$('monthly'),W=el.clientWidth,H=el.clientHeight;if(!W||!H)return;const fs=17;
-  const m={};DONATIONS.forEach(x=>{const k=x.d.slice(0,7);m[k]=(m[k]||0)+x.a});const keys=Object.keys(m).sort().slice(-6),vals=keys.map(k=>m[k]);
+  const m={};DONATIONS.forEach(x=>{const k=x.d.slice(0,7);m[k]=(m[k]||0)+x.a});m[mk]=m[mk]||0;const keys=Object.keys(m).sort().slice(-6),vals=keys.map(k=>m[k]);
   const{top}=scale(Math.max(...vals)),L=4,R=4,T=fs*1.8,B=fs*2.2,cw=(W-L-R)/keys.length,bw=cw*.55,y=v=>T+(H-T-B)*(1-v/top);
   let s=`<defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f9a6c"/><stop offset="1" stop-color="#0f6b4b"/></linearGradient></defs><line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="rgba(255,255,255,.15)"/>`;
   keys.forEach((k,i)=>{const cx=L+i*cw+cw/2,cur=k===mk;
